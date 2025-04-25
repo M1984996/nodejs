@@ -1,21 +1,28 @@
-const express = require('express');
-const path = require('path');
-const indexRouter = require('./routes/index');
+const express = require("express");
+const axios = require("axios");
+const cors = require("cors");
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
+const API_KEY = process.env.FMP_API_KEY;
 
-// Serve static files from the "public" directory
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(cors());
 
-// Use the router for handling routes
-app.use('/', indexRouter);
+app.use("/fmp/*", async (req, res) => {
+  const fmpPath = req.originalUrl.replace("/fmp/", ""); // strip "/fmp/"
+  const fmpUrl = `https://financialmodelingprep.com/${fmpPath}`;
 
-// Catch-all route for handling 404 errors
-app.use((req, res, next) => {
-    res.status(404).sendFile(path.join(__dirname, 'views', '404.html'));
-  });
+  try {
+    const response = await axios.get(fmpUrl, {
+      params: { ...req.query, apikey: API_KEY },
+    });
+    res.json(response.data);
+  } catch (err) {
+    console.error("FMP Proxy error:", err.message);
+    res.status(500).json({ error: "Failed to fetch FMP data" });
+  }
+});
 
 app.listen(PORT, () => {
-  console.log(`Server running at http://localhost:${PORT}/`);
+  console.log(`🚀 Proxy running on port ${PORT}`);
 });
